@@ -1,0 +1,22 @@
+.header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 7vh;
+  padding: 0 4vw;
+  background-color: #222222;
+  width: 100vw;
+  position: absolute;
+  left: 0;
+  }
+  
+  .iconsContainer {
+    display: flex;
+    align-items: center;
+  }
+  
+  .icon {
+    font-size: 24px;
+    margin-left: 20px;
+  }
+  

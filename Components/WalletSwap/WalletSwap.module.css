@@ -1,0 +1,63 @@
+.swapContainer {
+    padding: 20px;
+    background-color: #000;
+    margin: auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    height: 100vh;
+}
+
+.title {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.inputGroup {
+    margin-bottom: 20px;
+}
+
+.label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.input {
+    padding: 10px;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.swapButton {
+    padding: 10px 20px;
+    background-color: #2b73ff;
+    color: #000000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.swapButton:hover {
+    opacity: 0.8;
+}
+
+.error {
+    color: red;
+    margin-top: 10px;
+}
+
+.quoteDetails {
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.quoteTitle {
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.quoteItem {
+    margin-bottom: 5px;
+}
