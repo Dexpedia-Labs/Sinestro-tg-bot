@@ -1,181 +1,190 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { ethers } from "ethers";
 import styles from "./WalletSwap.module.css";
-import { TOKENS_PAIR_FOR_SWAP, numberToBigNumberFixed } from "../Constants";
-import IUniswapV2Router02 from "@uniswap/v2-periphery/build/IUniswapV2Router02.json";
 import Toast from "../Toast/Toast";
+import { WalletContext } from "../../Context/WalletContext";
+import { KIM_ABI, WETH_ADDRESS } from "../Constants";
+import { FaGear } from "react-icons/fa6";
+import { IoSwapVertical } from "react-icons/io5";
+import TokenModal from "./TokenModal";
+import SwapBox from "./SwapBox";
+import IUniswapV2Pair from "@uniswap/v2-core/build/IUniswapV2Pair.json";
+
+const ETH_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
 function WalletSwap() {
-  const [tokenList, setTokenList] = useState([]);
-  const [tokenAAddress, setTokenAAddress] = useState("");
-  const [tokenBAddress, setTokenBAddress] = useState("");
-  const [amount, setAmount] = useState("");
+  const { signer, provider, tokenList } = useContext(WalletContext);
+  const [tokenInfoA, setTokenInfoA] = useState(null);
+  const [tokenInfoB, setTokenInfoB] = useState(null);
+  const [amountA, setAmountA] = useState("");
+  const [amountB, setAmountB] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: null, type: null });
   const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const [signer, setSigner] = useState(null);
-  const [provider, setProvider] = useState(null);
+  const [isTokenAModalOpen, setIsTokenAModalOpen] = useState(false);
+  const [isTokenBModalOpen, setIsTokenBModalOpen] = useState(false);
+  const [minimumReceived, setMinimumReceived] = useState(null);
+  const [lpFee, setLpFee] = useState(null);
+  const [priceImpact, setPriceImpact] = useState(null);
+  const [swapDisabled, setSwapDisabled] = useState(true);
+
   useEffect(() => {
-    const initializeWallet = async () => {
-      try {
-        const walletMnemonic = localStorage.getItem("walletMnemonic");
-        if (!walletMnemonic) throw new Error("Wallet mnemonic not found.");
+    if (signer) {
+      setIsWalletConnected(true);
+    }
+  }, [signer]);
 
-        const mainnetProvider = new ethers.providers.JsonRpcProvider(
-          "https://mainnet.mode.network"
-        );
+  useEffect(() => {
+    const defaultTokenA = tokenList.find((token) => token.symbol === "MODE");
+    const defaultTokenB = tokenList.find((token) => token.symbol === "ETH");
+    setTokenInfoA(defaultTokenA);
+    setTokenInfoB(defaultTokenB);
+  }, [tokenList]);
 
-        const wallet = ethers.Wallet.fromMnemonic(walletMnemonic);
-        const connectedWallet = wallet.connect(mainnetProvider);
-        setProvider(mainnetProvider);
-        setSigner(connectedWallet);
-        setIsWalletConnected(true);
-      } catch (error) {
-        console.error("Failed to connect wallet:", error);
-        setMessage({
-          text: "Failed to connect wallet. Please try again.",
-          type: "error",
-        });
-      }
-    };
+  useEffect(() => {
+    if (tokenInfoA && tokenInfoB && amountA) {
+      calculateSwapDetails();
+    }
+    updateSwapDisabledState();
+  }, [tokenInfoA, tokenInfoB, amountA]);
 
-    const fetchTokenList = async () => {
-      try {
-        setTokenList(TOKENS_PAIR_FOR_SWAP);
-      } catch (error) {
-        console.error("Failed to fetch token list:", error);
-        setMessage({
-          text: "Failed to fetch token list. Please try again.",
-          type: "error",
-        });
-      }
-    };
-
-    initializeWallet();
-    fetchTokenList();
-  }, []);
-
-  const handleApproveAndSwap = async () => {
-    setLoading(true);
+  const handleCloseToast = () => {
     setMessage({ text: null, type: null });
+  };
 
+  const handleSelectTokenA = (token) => {
+    if (token.contractAddress === tokenInfoB?.contractAddress) {
+      setTokenInfoB(tokenList.find((token) => token.symbol === "ETH"));
+    }
+    setTokenInfoA(token);
+    setIsTokenAModalOpen(false);
+  };
+
+  const handleSelectTokenB = (token) => {
+    if (token.contractAddress === tokenInfoA?.contractAddress) {
+      setTokenInfoB(tokenList.find((token) => token.symbol === "ETH"));
+    }
+    setTokenInfoB(token);
+    setIsTokenBModalOpen(false);
+  };
+
+  const handleSwapTokens = () => {
+    const tempTokenInfo = tokenInfoA;
+    const tempAmount = amountA;
+    setTokenInfoA(tokenInfoB);
+    setTokenInfoB(tempTokenInfo);
+    setAmountA(amountB);
+    setAmountB(tempAmount);
+  };
+
+  const checkReserves = async (
+    routerContract,
+    tokenFromAddress,
+    tokenToAddress
+  ) => {
+    const pair = await routerContract.getPair(tokenFromAddress, tokenToAddress);
+    const pairContract = new ethers.Contract(pair, IUniswapV2Pair.abi, signer);
+    const reserves = await pairContract.getReserves();
+    return reserves;
+  };
+
+  const approveToken = async (tokenContract, spender, amount) => {
+    const approveTx = await tokenContract.approve(spender, amount);
+    await approveTx.wait();
+  };
+
+  const swapTokens = async () => {
     try {
-      if (!provider || !signer) {
-        throw new Error("Provider or signer not available.");
-      }
-      if (!tokenAAddress || !tokenBAddress || !amount) {
-        throw new Error("Missing required inputs.");
-      }
-      const tokenAInfo = tokenList.find(
-        (token) => token.contractAddress === tokenAAddress
-      );
-      const tokenBInfo = tokenList.find(
-        (token) => token.contractAddress === tokenBAddress
-      );
-      if (!tokenAInfo || !tokenBInfo) {
-        throw new Error("Tokens not found in available token list.");
+      setLoading(true);
+      setMessage({ text: null, type: null });
+
+      if (!tokenInfoA || !tokenInfoB || !amountA) {
+        throw new Error("Please fill all fields.");
       }
 
-      const tokenAContract = new ethers.Contract(
-        tokenAInfo.contractAddress,
-        ["function approve(address spender, uint256 amount) returns (bool)"],
-        signer
-      );
-
-      const tokenAmountIn = numberToBigNumberFixed(
-        +amount,
-        tokenAInfo.decimals
-      );
-      const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
-      const path = [tokenAAddress, tokenBAddress];
-      const gasLimit = ethers.BigNumber.from("800000");
-
+      const routerAddress = "0x5D61c537393cf21893BE619E36fC94cd73C77DD3";
       const routerContract = new ethers.Contract(
-        "0x5D61c537393cf21893BE619E36fC94cd73C77DD3",
-        IUniswapV2Router02.abi,
+        routerAddress,
+        KIM_ABI,
         signer
       );
-      console.log(routerContract);
-      let amountsOut;
-        amountsOut = [
-          ethers.BigNumber.from("1000000000000000000"),
-          ethers.BigNumber.from("2000000000000000000"), 
-        ];
-      // } else {
-      //   amountsOut = await routerContract.getAmountsOut(tokenAmountIn, path);
-      // }
-      console.log(
-        "Amounts Out:",
-        amountsOut.map((amount) => amount.toString())
+      let tokenFromAddress = tokenInfoA.contractAddress;
+      let tokenToAddress = tokenInfoB.contractAddress;
+
+      // Check if tokenFromAddress or tokenToAddress is ETH and replace with WETH address
+      if (tokenFromAddress === ETH_ADDRESS) {
+        tokenFromAddress = WETH_ADDRESS;
+      }
+      if (tokenToAddress === ETH_ADDRESS) {
+        tokenToAddress = WETH_ADDRESS;
+      }
+
+      const decimalsA = tokenInfoA.decimals;
+      const tokenAmountIn = ethers.utils.parseUnits(amountA, decimalsA);
+
+      const reserves = await checkReserves(
+        routerContract,
+        tokenFromAddress,
+        tokenToAddress
       );
+      const directSwapPossible = reserves[0].gt(0) && reserves[1].gt(0);
 
-      const tokenAmountOutMin = amountsOut[1].sub(amountsOut[1].div(10));
-
-      if (tokenAAddress === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
-        const wethContract = new ethers.Contract(
-          "0x4200000000000000000000000000000000000006",
-          ["function deposit() payable"],
+      if (!directSwapPossible) {
+        // Swap through WETH
+        const tokenAContract = new ethers.Contract(
+          tokenFromAddress,
+          ["function approve(address spender, uint256 amount) returns (bool)"],
           signer
         );
-        await wethContract.deposit({ value: tokenAmountIn });
-      }
+        await approveToken(tokenAContract, routerAddress, tokenAmountIn);
 
-      const approveTx = await tokenAContract.approve(
-        "0x5D61c537393cf21893BE619E36fC94cd73C77DD3",
-        tokenAmountIn
-      );
-      await approveTx.wait();
+        // Convert tokenA to WETH
+        await executeSwap(
+          routerContract,
+          tokenFromAddress,
+          WETH_ADDRESS,
+          tokenAmountIn
+        );
 
-      let tx;
-      if (tokenAAddress === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
-        console.log("In 1st condition");
-        tx =
-          await routerContract.swapExactETHForTokensSupportingFeeOnTransferTokens(
-            tokenAmountOutMin,
-            path,
-            signer.address,
-            deadline,
-            { value: tokenAmountIn, gasLimit }
-          );
-      } else if (
-        tokenBAddress === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
-      ) {
-        console.log("In 2nd condition");
-        tx =
-          await routerContract.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            tokenAmountIn,
-            tokenAmountOutMin,
-            path,
-            signer.address,
-            deadline,
-            { gasLimit }
-          );
+        // Swap WETH to tokenB
+        const wethAmount = await routerContract.getAmountsOut(tokenAmountIn, [
+          tokenFromAddress,
+          WETH_ADDRESS,
+        ]);
+        await executeSwap(
+          routerContract,
+          WETH_ADDRESS,
+          tokenToAddress,
+          wethAmount[1]
+        );
       } else {
-        tx =
-          await routerContract.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-            tokenAmountIn,
-            tokenAmountOutMin,
-            path,
-            signer.address,
-            deadline,
-            { gasLimit }
-          );
-      }
+        // Direct swap possible
+        const tokenAContract = new ethers.Contract(
+          tokenFromAddress,
+          ["function approve(address spender, uint256 amount) returns (bool)"],
+          signer
+        );
+        await approveToken(tokenAContract, routerAddress, tokenAmountIn);
 
-      const receipt = await tx.wait();
-      console.log("Swap transaction receipt:", receipt);
+        await executeSwap(
+          routerContract,
+          tokenFromAddress,
+          tokenToAddress,
+          tokenAmountIn
+        );
+      }
 
       setMessage({ text: "Swap successful", type: "success" });
     } catch (error) {
       console.error("Error while swapping:", error);
       let errorMsg =
         "Transaction failed. Please check your transaction details and try again.";
-      if (error.code === "INSUFFICIENT_FUNDS") {
-        errorMsg =
-          "Insufficient funds for gas * price + value. Please check your balance and try again.";
-      } else if (error.code === "UNPREDICTABLE_GAS_LIMIT") {
-        errorMsg = "Unpredictable gas limit. Please try again later.";
-      } else if (error.code === "NETWORK_ERROR") {
-        errorMsg = "Network error. Please check your connection and try again.";
+      if (error.message.includes("insufficient funds")) {
+        errorMsg = "Insufficient funds to complete the transaction.";
+      } else if (
+        error.message.includes("Token pair is not available in the pool.")
+      ) {
+        errorMsg = "The selected token pair is not available in the pool.";
       }
       setMessage({ text: errorMsg, type: "error" });
     } finally {
@@ -183,10 +192,212 @@ function WalletSwap() {
     }
   };
 
-  const handleCloseToast = () => {
-    setMessage({ text: null, type: null });
+  const executeSwap = async (
+    routerContract,
+    tokenFromAddress,
+    tokenToAddress,
+    tokenAmountIn
+  ) => {
+    const amountsOut = await routerContract.getAmountsOut(tokenAmountIn, [
+      tokenFromAddress,
+      tokenToAddress,
+    ]);
+    const tokenAmountOutMin = amountsOut[1];
+    const gasPrice = await provider.getGasPrice();
+    const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
+    let tx;
+
+    if (tokenFromAddress === WETH_ADDRESS) {
+      tx =
+        await routerContract.swapExactETHForTokensSupportingFeeOnTransferTokens(
+          tokenAmountOutMin,
+          [WETH_ADDRESS, tokenToAddress],
+          signer.address,
+          ethers.constants.AddressZero,
+          deadline,
+          {
+            gasLimit: ethers.utils.hexlify(800000),
+            gasPrice: gasPrice.toString(),
+          }
+        );
+    } else if (tokenToAddress === WETH_ADDRESS) {
+      tx =
+        await routerContract.swapExactTokensForETHSupportingFeeOnTransferTokens(
+          tokenAmountIn,
+          tokenAmountOutMin,
+          [tokenFromAddress, WETH_ADDRESS],
+          signer.address,
+          ethers.constants.AddressZero,
+          deadline,
+          {
+            gasLimit: ethers.utils.hexlify(800000),
+            gasPrice: gasPrice.toString(),
+          }
+        );
+    } else {
+      tx =
+        await routerContract.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+          tokenAmountIn,
+          tokenAmountOutMin,
+          [tokenFromAddress, tokenToAddress],
+          signer.address,
+          ethers.constants.AddressZero,
+          deadline,
+          {
+            gasLimit: ethers.utils.hexlify(800000),
+            gasPrice: gasPrice.toString(),
+          }
+        );
+    }
+
+    const receipt = await tx.wait();
+    console.log("Transaction receipt:", receipt);
   };
 
+  const calculateSwapDetails = async () => {
+    try {
+      if (!tokenInfoA || !tokenInfoB || !amountA) {
+        throw new Error("Please select tokens and enter amount.");
+      }
+
+      const routerAddress = "0x5D61c537393cf21893BE619E36fC94cd73C77DD3";
+      const routerContract = new ethers.Contract(
+        routerAddress,
+        KIM_ABI,
+        signer
+      );
+      let tokenFromAddress = tokenInfoA.contractAddress;
+      let tokenToAddress = tokenInfoB.contractAddress;
+
+      // Check if tokenFromAddress or tokenToAddress is ETH and replace with WETH address
+      if (tokenFromAddress === ETH_ADDRESS) {
+        tokenFromAddress = WETH_ADDRESS;
+      }
+      if (tokenToAddress === ETH_ADDRESS) {
+        tokenToAddress = WETH_ADDRESS;
+      }
+
+      const decimalsA = tokenInfoA.decimals;
+      const tokenAmountIn = ethers.utils.parseUnits(amountA, decimalsA);
+
+      const reserves = await checkReserves(
+        routerContract,
+        tokenFromAddress,
+        tokenToAddress
+      );
+      const directSwapPossible = reserves[0].gt(0) && reserves[1].gt(0);
+
+      let amountsOut, tokenAmountOutMin;
+
+      if (directSwapPossible) {
+        amountsOut = await routerContract.getAmountsOut(tokenAmountIn, [
+          tokenFromAddress,
+          tokenToAddress,
+        ]);
+        tokenAmountOutMin = amountsOut[1];
+      } else {
+        // Swap through WETH
+        const amountsOutToWETH = await routerContract.getAmountsOut(
+          tokenAmountIn,
+          [tokenFromAddress, WETH_ADDRESS]
+        );
+        const tokenAmountInWETH = amountsOutToWETH[1];
+
+        const amountsOutFromWETH = await routerContract.getAmountsOut(
+          tokenAmountInWETH,
+          [WETH_ADDRESS, tokenToAddress]
+        );
+        tokenAmountOutMin = amountsOutFromWETH[1];
+      }
+
+      const tokenAmountOutMinFormatted = ethers.utils.formatUnits(
+        tokenAmountOutMin,
+        tokenInfoB.decimals
+      );
+
+      const priceImpactValue = calculatePriceImpact(
+        reserves,
+        tokenAmountIn,
+        tokenAmountOutMin
+      );
+      const lpFeeValue = calculateLpFee(tokenAmountIn);
+
+      setAmountB(tokenAmountOutMinFormatted);
+      setMinimumReceived(tokenAmountOutMinFormatted);
+      setPriceImpact(priceImpactValue);
+      setLpFee(lpFeeValue);
+    } catch (error) {
+      console.error("Error while calculating swap details:", error);
+    }
+  };
+
+  const handleAmountAChange = (e) => {
+    const value = e.target.value;
+    setAmountA(value);
+
+    // Clear amountB when amountA is cleared
+    if (!value) {
+      setAmountB("");
+      setMinimumReceived(null);
+      setLpFee(null);
+      setPriceImpact(null);
+    }
+  };
+
+  const calculatePriceImpact = (reserves, tokenAmountIn, tokenAmountOutMin) => {
+    const reserveIn = reserves[0];
+    const reserveOut = reserves[1];
+
+    const amountInWithFee = tokenAmountIn.mul(997);
+    const numerator = amountInWithFee.mul(reserveOut);
+    const denominator = reserveIn.mul(1000).add(amountInWithFee);
+    const amountOut = numerator.div(denominator);
+
+    const priceImpact = tokenAmountOutMin.sub(amountOut);
+    return ethers.utils.formatUnits(priceImpact, tokenInfoB.decimals);
+  };
+
+  const calculateLpFee = (tokenAmountIn) => {
+    return ethers.utils.formatUnits(
+      tokenAmountIn.mul(3).div(1000),
+      tokenInfoA.decimals
+    );
+  };
+
+  const isTokenPairAvailable = async () => {
+    try {
+      if (!tokenInfoA || !tokenInfoB) return false;
+
+      const routerAddress = "0x5D61c537393cf21893BE619E36fC94cd73C77DD3";
+      const routerContract = new ethers.Contract(
+        routerAddress,
+        KIM_ABI,
+        signer
+      );
+      let tokenFromAddress = tokenInfoA.contractAddress;
+      let tokenToAddress = tokenInfoB.contractAddress;
+      if (tokenFromAddress === ETH_ADDRESS) {
+        tokenFromAddress = WETH_ADDRESS;
+      }
+      if (tokenToAddress === ETH_ADDRESS) {
+        tokenToAddress = WETH_ADDRESS;
+      }
+
+      const pair = await routerContract.getPair(
+        tokenFromAddress,
+        tokenToAddress
+      );
+      return pair !== ethers.constants.AddressZero;
+    } catch (error) {
+      console.error("Error checking token pair availability:", error);
+      return false;
+    }
+  };
+
+  const updateSwapDisabledState = async () => {
+    const pairAvailable = await isTokenPairAvailable();
+    setSwapDisabled(!pairAvailable);
+  };
   return (
     <div className={styles.swapContainer}>
       <Toast
@@ -194,69 +405,74 @@ function WalletSwap() {
         type={message.type}
         onClose={handleCloseToast}
       />
-      <h2 className={styles.title}>Token Swap</h2>
+      <h2 className={styles.title}>SWAP</h2>
       {isWalletConnected ? (
         <>
-          <div className={styles.inputGroup}>
-            <label htmlFor="tokenAAddress" className={styles.label}>
-              Token A:
-            </label>
-            <select
-              id="tokenAAddress"
-              className={styles.input}
-              value={tokenAAddress}
-              onChange={(e) => setTokenAAddress(e.target.value)}
-            >
-              <option value="">Select Token A</option>
-              {tokenList.map((token, index) => (
-                <option
-                  key={`${token.contractAddress}-${index}`}
-                  value={token.contractAddress}
-                >
-                  {token.name} ({token.symbol})
-                </option>
-              ))}
-            </select>
+          <div className={styles.swapHeader}>
+            <div className={styles.versionTab}>
+              <p className={styles.tab}>V4</p>
+            </div>
+            <FaGear size={20} color="#787878" />
           </div>
-          <div className={styles.inputGroup}>
-            <label htmlFor="tokenBAddress" className={styles.label}>
-              Token B:
-            </label>
-            <select
-              id="tokenBAddress"
-              className={styles.input}
-              value={tokenBAddress}
-              onChange={(e) => setTokenBAddress(e.target.value)}
-            >
-              <option value="">Select Token B</option>
-              {tokenList.map((token, index) => (
-                <option
-                  key={`${token.contractAddress}-${index}`}
-                  value={token.contractAddress}
-                >
-                  {token.name} ({token.symbol})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className={styles.inputGroup}>
-            <label htmlFor="amount" className={styles.label}>
-              Amount:
-            </label>
-            <input
-              type="number"
-              id="amount"
-              className={styles.input}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+          <div className={styles.swappingContainers}>
+            <SwapBox
+              label="To"
+              tokenInfo={tokenInfoB}
+              amount={amountB}
+              onAmountChange={() => {}}
+              onTokenClick={() => setIsTokenBModalOpen(true)}
+            />
+            <div className={styles.circle} onClick={handleSwapTokens}>
+              <IoSwapVertical size={16} color="#2B73FF" />
+            </div>
+            <SwapBox
+              label="From"
+              tokenInfo={tokenInfoA}
+              amount={amountA}
+              onAmountChange={handleAmountAChange}
+              onTokenClick={() => setIsTokenAModalOpen(true)}
             />
           </div>
+
+          {isTokenAModalOpen && (
+            <TokenModal
+              title="Select Token A"
+              tokenList={tokenList}
+              onSelectToken={handleSelectTokenA}
+              onClose={() => setIsTokenAModalOpen(false)}
+            />
+          )}
+
+          {isTokenBModalOpen && (
+            <TokenModal
+              title="Select Token B"
+              tokenList={tokenList}
+              onSelectToken={handleSelectTokenB}
+              onClose={() => setIsTokenBModalOpen(false)}
+            />
+          )}
+
+          {tokenInfoA && tokenInfoB && (
+            <div className={styles.detailsContainer}>
+              <p>Minimum Received: {minimumReceived}</p>
+              <p>LP Fee: {lpFee}</p>
+              <p>Price Impact: {priceImpact}</p>
+              <p>Slippage tolerance: 0.5%</p>
+              {/* <p>
+                Route:{" "}
+                {directSwapPossible
+                  ? `${tokenInfoA.symbol} -> ${tokenInfoB.symbol}`
+                  : `${tokenInfoA.symbol} -> WETH -> ${tokenInfoB.symbol}`}
+              </p> */}
+            </div>
+          )}
+
           <button
-            className={styles.swapButton}
-            onClick={handleApproveAndSwap}
-            disabled={loading}
+            className={styles.button}
+            onClick={swapTokens}
+            disabled={loading || swapDisabled}
           >
-            {loading ? "Swapping..." : "Approve and Swap"}
+            {loading ? "Loading..." : "Continue"}
           </button>
         </>
       ) : (

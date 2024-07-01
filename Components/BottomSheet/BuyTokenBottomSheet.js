@@ -23,19 +23,13 @@ function BuyTokenBottomSheet({
       >
         <Sheet.Container
           style={{
-            backgroundColor: "#000",
+            backgroundColor: "#232323",
             color: "#fff",
-            border: "1px solid #fff",
           }}
         >
-          <Sheet.Header />
+          <Sheet.Header className={styles.sheet_header} />
           <div className={styles.modalContent}>
-            <IoCloseCircleOutline
-              color="#fff"
-              onClick={() => setShowModal(false)}
-              style={{ cursor: "pointer" }}
-            />
-            <h2>{transactionType === "buy" ? "Buy Token" : "Sell Token"}</h2>
+            <h2 className={styles.heading}>{transactionType === "buy" ? "Buy Token" : "Sell Token"}</h2>
             <select
               className={styles.select}
               value={tokenAddress}

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import CreateWallet from "../../Components/CreateWallet/CreateWallet";
+import SignupLogin from "../../Components/SignupLogin/SignupLogin";
 
 export default function Home() {
   useEffect(() => {
@@ -8,13 +8,12 @@ export default function Home() {
       tele.ready();
       tele.expand();
       tele.viewportStableHeight    
-      console.log(window.Telegram.WebApp);
    }
   }, []);
 
   return (
     <div>
-      <CreateWallet />
+      <SignupLogin/>
     </div>
   );
 }

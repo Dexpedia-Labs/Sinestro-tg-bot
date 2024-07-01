@@ -44,8 +44,6 @@ export function Awaiter() {
         if (scroll <= 0 && ts < te) {
           e.preventDefault();
         }
-      } else {
-        e.preventDefault();
       }
     };
     document.documentElement.addEventListener('touchstart', onTouchStart, { passive: false });

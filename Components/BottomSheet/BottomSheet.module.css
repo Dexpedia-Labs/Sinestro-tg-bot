@@ -9,6 +9,18 @@
     align-items: center;
     justify-content: center;
   }
+  .heading{
+    font-family: "Sarpanch", sans-serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    width: 100%;
+    text-align: center;
+    color: #ffffff;
+    text-transform: uppercase;
+  }
+  .sheet_header{
+    height: 5rem;
+  }
   .modalContent {
     padding: 20px;
     border-radius: 8px;
@@ -23,33 +35,38 @@
   
   .select {
     padding: 10px;
-    border: 1px solid #ddd;
+    border: none;
     border-radius: 8px;
     font-size: 16px;
     width: 100%;
-    margin-bottom: 20px;
-    background-color: #f7f2f1;
-    color: #1b1434;
+    height: 3.5rem;
+    background-color: #121212;
+    color: #ffffff;
   }
   
   .input {
     padding: 10px;
-    border: 1px solid #ddd;
+    border: none;
     border-radius: 8px;
     font-size: 16px;
     width: 100%;
-    margin-bottom: 20px;
-    background-color: #f7f2f1;
-    color: #1b1434;
+    height: 3.5rem;
+    background-color: #121212;
+    color: #ffffff;
   }
   
   .confirmButton {
-    padding: 2vh 2vw;
     background-color: #2b73ff;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1.063rem;
+    padding: 14px 10px;
+    width: 100%;
+    color: #ffffff;
     border: none;
-    border-radius: 15px;
-    color: #FFF;
-  
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    margin-top: 1.5rem;
+  }
+  .sheet_header{
+    height: 5rem;
   }

@@ -18,20 +18,14 @@ function StackBottomSheet({
         snapPoints={[500, 400, 100, 0]}
       >
         <Sheet.Container
-          style={{
-            backgroundColor: "#000",
-            color: "#fff",
-            border: "1px solid #fff",
-          }}
+            style={{
+              backgroundColor: "#232323",
+              color: "#fff",
+            }}
         >
-          <Sheet.Header />
+          <Sheet.Header className={styles.sheet_header}/>
           <div className={styles.modalContent}>
-            <IoCloseCircleOutline
-              color="#fff"
-              onClick={() => setShowStakingModal(false)}
-              style={{ cursor: "pointer" }}
-            />
-            <h2>Stake Tokens</h2>
+            <h2 className={styles.heading}>Stake Tokens</h2>
             <input
               type="text"
               className={styles.input}

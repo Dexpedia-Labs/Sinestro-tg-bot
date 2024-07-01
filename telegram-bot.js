@@ -6,7 +6,7 @@ const weblink = "https://resilient-buttercream-284736.netlify.app/";
 bot.start((ctx) => {
   ctx.reply(
     "Welcome! Use /start to open the web app.",
-    Markup.inlineKeyboard([Markup.button.webApp("Open Sinestro", weblink)])
+    Markup.inlineKeyboard([Markup.button.webApp("Open Dexpedia", weblink)])
   );
 });
 
