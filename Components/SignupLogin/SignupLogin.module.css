@@ -1,5 +1,3 @@
-/* SignupLogin.module.css */
-
 .mainPage {
   height: 100vh;
   background-color: #121212;
@@ -12,6 +10,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+    margin-bottom: 10%;
+
 }
 
 .iconContainer {
@@ -26,14 +26,13 @@
   font-weight: 700;
   width: 100%;
   color: #fff;
-  margin-top: 20%;
 }
 
 .inputContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 2rem;
+  /* padding-top: 5rem; */
   gap: 2rem;
 }
 

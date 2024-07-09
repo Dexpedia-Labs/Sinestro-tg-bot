@@ -1,4 +1,4 @@
-.container{
+.container {
   padding: 0 1.5rem;
 }
 .walletInfo {
@@ -6,20 +6,18 @@
   font-family: "boboto", sans-serif;
   gap: 2vh;
   border-radius: 20px;
-  
+
   box-sizing: border-box;
 }
-.heading{
+.heading {
   font-family: "Sarpanch", sans-serif;
-  font-size: 1.5rem;
-  font-weight: 700;
-  width: 100%;
-  text-align: center;
-  color: #555555;
+  color: #fff;
 }
 .backButton {
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  font-size: 1.5rem;
+  gap: 0.1rem;
   color: white;
 }
 .seedPhraseText {
@@ -35,12 +33,16 @@
   filter: blur(5px);
 }
 .walletInfo h2 {
-  font-weight: 400;
-  font-size: 2rem;
-  margin-top: 4vh;
-  padding-left: 2vw;
+  font-weight: 600;
+  font-size: 1.5rem;
+  padding-top: 4vh;
+  padding-bottom: 1vh;
 }
-
+.profileContainer{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 .address h3,
 .seedPhrase h3 {
   font-weight: 500;
@@ -55,7 +57,7 @@
   margin-top: 1.5rem;
   box-sizing: border-box;
   word-break: break-all;
-  overflow-wrap: break-word; 
+  overflow-wrap: break-word;
 }
 
 .addressContainer label,
@@ -65,7 +67,6 @@
 
 .addressContainer p,
 .seedPhraseContainer p {
-  margin-top: 1vh;
   line-height: 1.6rem;
   font-size: 0.8rem;
 }
@@ -78,20 +79,21 @@
   font-size: 1.8vh;
 }
 
-.seedPhraseContainer .labelWithIcon {
+.labelWithIcon {
   display: flex;
   align-items: center;
-  gap: 1vw;
-  padding: 2vh 0;
+  justify-content: space-between;
 }
-
+.labelWithIcon p {
+  color: #555555;
+  font-weight: 600;
+}
 .copyIcon {
   cursor: pointer;
   font-size: 1.8vh;
   color: #2b73ff;
   transition: color 0.3s ease;
 }
-
 
 .copiedText {
   font-size: 1.2vh;
@@ -122,16 +124,24 @@
   font-size: 1.063rem;
   padding: 14px 10px;
   width: 87vw;
-  background-color: rgba(255, 139, 139, 0.363);
+  background-color: rgba(255, 95, 95, 0.6);
   color: #ffffff;
   border: none;
   cursor: pointer;
   margin-top: 1.5rem;
 }
 
-
-
 .buttonContainer {
   display: flex;
+  justify-content: center;
+}
+.toolTipContainer {
+  background-color: #1f4388;
+  color: white;
+  padding: 0.5rem 1rem;
+  display: flex;
+  border-radius: 10px;
+  gap: 0.2rem;
+  font-size: 0.9rem;
   justify-content: center;
 }

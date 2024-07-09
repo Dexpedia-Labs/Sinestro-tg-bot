@@ -45,18 +45,17 @@ function SignupLogin() {
                   <div>
                     <Image
                       src="/logoMain2.png"
-                      height={50}
+                      height={40}
                       width={200}
                       alt="logo"
                     />
                   </div>
                   <div className={styles.iconContainer}>
                     <HiSquares2X2 size={30} />
-                    <HiOutlineSearch size={30} />
-                  </div>
+                    </div>
                 </div>
-                <h2 className={styles.heading}>Sign In</h2>
                 <div className={styles.inputContainer}>
+                <h2 className={styles.heading}>Sign In</h2>
                   <div className={styles.inputWithIcon}>
                     <FaUser className={styles.inputIcon} />
                     <input

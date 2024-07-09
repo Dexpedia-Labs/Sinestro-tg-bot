@@ -11,6 +11,9 @@ import {
 import { useRouter } from "next/router";
 import copy from "copy-to-clipboard";
 import SeedPhraseInfo from "./SeedPhraseInfo.js";
+import { IoChevronBackOutline } from "react-icons/io5";
+import { IoIosInformationCircleOutline } from "react-icons/io";
+import { BiSolidCopy } from "react-icons/bi";
 
 function UserProfile({ handleCloseUserProfile }) {
   const [walletInfo, setWalletInfo] = useState(null);
@@ -63,71 +66,40 @@ function UserProfile({ handleCloseUserProfile }) {
   };
 
   const logout = () => {
-    localStorage.removeItem("walletMnemonic");
     localStorage.removeItem("walletAddress");
     localStorage.removeItem("walletPublicKey");
+    localStorage.removeItem("tokensData");
+    localStorage.removeItem("tokenAPRData");
     router.push("/");
   };
 
   return (
     <div className={styles.container}>
-      <div>
-        <h2 className={styles.heading}>PROFILE</h2>
-      </div>{" "}
       <div className={styles.walletInfo}>
         {!showSeedPhraseInfo && !showAddressDetails && (
-          <>
+          <div className={styles.profileContainer}>
             <div className={styles.backButton} onClick={backToDashboard}>
-              <FaArrowLeft />
+              <IoChevronBackOutline /><p>Back</p>
             </div>{" "}
-            <div
-              className={styles.seedPhraseContainer}
-              onClick={toggleAddressDetails}
-            >
-              <div className={styles.labelWithIcon}>
-                <FaAddressBook className={styles.icon} />
-                <h3>Address</h3>
-              </div>
-            </div>
-            <div
-              className={styles.seedPhraseContainer}
-              onClick={toggleSeedPhraseInfo}
-            >
-              <div className={styles.labelWithIcon}>
-                <FaStickyNote className={styles.icon} />
-                <h3>Seed Phrase</h3>
-              </div>
-            </div>
-            <div className={styles.buttonContainer}>
-              <button onClick={logout} className={styles.button}>
-                Logout
-              </button>
-            </div>
-          </>
-        )}
-        {showSeedPhraseInfo && (
-          <SeedPhraseInfo
-            privateKey={walletInfo && walletInfo.privateKey}
-            mnemonic={walletInfo && walletInfo.mnemonic}
-            onBack={toggleSeedPhraseInfo}
-            handleCopy={handleCopy}
-            copiedText={copiedText}
-          />
-        )}
-        {showAddressDetails && (
-          <>
-            <div className={styles.backButton} onClick={toggleAddressDetails}>
-              <FaArrowLeft />
+            <div>
+              <h2 className={styles.heading}>Credentials</h2>
+            </div>{" "}
+            <div className={styles.toolTipContainer}>
+            <IoIosInformationCircleOutline size={22} />
+
+              <p>
+                Do not share your passphrase or private key with anyone, even
+                with us!
+              </p>
             </div>
             <div className={styles.seedPhraseContainer}>
               <div className={styles.labelWithIcon}>
-                <FaAddressBook className={styles.icon} />
-                <h3>Address</h3>
+                <p>Address</p>
                 <div
                   className={styles.copyIcon}
                   onClick={() => handleCopy(walletInfo && walletInfo.address)}
                 >
-                  <FaCopy />
+                  <BiSolidCopy />
                 </div>
               </div>
               <div className={styles.seedPhraseContent}>
@@ -139,8 +111,22 @@ function UserProfile({ handleCloseUserProfile }) {
                 <span className={styles.copiedText}>Copied!</span>
               )}
             </div>
-          </>
+            <SeedPhraseInfo
+              privateKey={walletInfo && walletInfo.privateKey}
+              mnemonic={walletInfo && walletInfo.mnemonic}
+              onBack={toggleSeedPhraseInfo}
+              handleCopy={handleCopy}
+              copiedText={copiedText}
+            />
+            <div className={styles.buttonContainer}>
+              <button onClick={logout} className={styles.button}>
+                Logout
+              </button>
+            </div>
+          </div>
         )}
+
+        <></>
       </div>
     </div>
   );

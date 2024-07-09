@@ -31,8 +31,7 @@ const WalletLogin = ({ handleBackToCreateWallet }) => {
 
   return (
     <div className={styles.loginContainer}>
-   
-      <h1 className={styles.heading}>Login</h1>
+      <h1 className={styles.heading}>LOGIN</h1>
       <div className={styles.backButton} onClick={handleBackToCreateWallet}>
         <FaArrowLeft />
       </div>{" "}

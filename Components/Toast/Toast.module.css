@@ -19,6 +19,11 @@
   .toast.error {
     background-color: #f44336;
   }
+  .txHash {
+    color: #2b73ff;
+    cursor: pointer;
+    text-decoration: underline;
+  }
   
   @keyframes slide-in {
     from {

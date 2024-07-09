@@ -9,11 +9,12 @@ import { IoSwapVertical } from "react-icons/io5";
 import TokenModal from "./TokenModal";
 import SwapBox from "./SwapBox";
 import IUniswapV2Pair from "@uniswap/v2-core/build/IUniswapV2Pair.json";
+import { useActiveAccount, useActiveWalletChain } from "thirdweb/react";
 
 const ETH_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 function WalletSwap() {
-  const { signer, provider, tokenList } = useContext(WalletContext);
+  const { tokenList } = useContext(WalletContext);
   const [tokenInfoA, setTokenInfoA] = useState(null);
   const [tokenInfoB, setTokenInfoB] = useState(null);
   const [amountA, setAmountA] = useState("");
@@ -27,15 +28,36 @@ function WalletSwap() {
   const [lpFee, setLpFee] = useState(null);
   const [priceImpact, setPriceImpact] = useState(null);
   const [swapDisabled, setSwapDisabled] = useState(true);
+  const activeAccount = useActiveAccount();
+  const activeChain = useActiveWalletChain();
 
+  const [signer, setSigner] = useState();
+  
+  const rpcBaseUrl = activeChain?.rpc.split('${')[0];
+  const provider = new ethers.providers.JsonRpcProvider(
+    rpcBaseUrl
+  );
   useEffect(() => {
-    if (signer) {
+    if (activeAccount) {
+      const activeSigner = provider.getSigner(activeAccount.address);
+      setSigner(activeSigner);
       setIsWalletConnected(true);
     }
+  }, [activeAccount]);
+
+  const checkBalance = async () => {
+    if (signer) {
+      const balance = await signer.getBalance();
+      console.log("Account Balance:", ethers.utils.formatEther(balance));
+    }
+  };
+
+  useEffect(() => {
+    checkBalance();
   }, [signer]);
 
   useEffect(() => {
-    const defaultTokenA = tokenList.find((token) => token.symbol === "MODE");
+    const defaultTokenA = tokenList.find((token) => token.symbol === "USDC");
     const defaultTokenB = tokenList.find((token) => token.symbol === "ETH");
     setTokenInfoA(defaultTokenA);
     setTokenInfoB(defaultTokenB);
@@ -97,11 +119,11 @@ function WalletSwap() {
     try {
       setLoading(true);
       setMessage({ text: null, type: null });
-
+  
       if (!tokenInfoA || !tokenInfoB || !amountA) {
         throw new Error("Please fill all fields.");
       }
-
+  
       const routerAddress = "0x5D61c537393cf21893BE619E36fC94cd73C77DD3";
       const routerContract = new ethers.Contract(
         routerAddress,
@@ -110,7 +132,7 @@ function WalletSwap() {
       );
       let tokenFromAddress = tokenInfoA.contractAddress;
       let tokenToAddress = tokenInfoB.contractAddress;
-
+  
       // Check if tokenFromAddress or tokenToAddress is ETH and replace with WETH address
       if (tokenFromAddress === ETH_ADDRESS) {
         tokenFromAddress = WETH_ADDRESS;
@@ -118,17 +140,19 @@ function WalletSwap() {
       if (tokenToAddress === ETH_ADDRESS) {
         tokenToAddress = WETH_ADDRESS;
       }
-
+  
       const decimalsA = tokenInfoA.decimals;
       const tokenAmountIn = ethers.utils.parseUnits(amountA, decimalsA);
-
+  
       const reserves = await checkReserves(
         routerContract,
         tokenFromAddress,
         tokenToAddress
       );
       const directSwapPossible = reserves[0].gt(0) && reserves[1].gt(0);
-
+  
+      let tx;
+  
       if (!directSwapPossible) {
         // Swap through WETH
         const tokenAContract = new ethers.Contract(
@@ -137,7 +161,7 @@ function WalletSwap() {
           signer
         );
         await approveToken(tokenAContract, routerAddress, tokenAmountIn);
-
+  
         // Convert tokenA to WETH
         await executeSwap(
           routerContract,
@@ -145,7 +169,7 @@ function WalletSwap() {
           WETH_ADDRESS,
           tokenAmountIn
         );
-
+  
         // Swap WETH to tokenB
         const wethAmount = await routerContract.getAmountsOut(tokenAmountIn, [
           tokenFromAddress,
@@ -165,16 +189,21 @@ function WalletSwap() {
           signer
         );
         await approveToken(tokenAContract, routerAddress, tokenAmountIn);
-
-        await executeSwap(
+  
+        tx = await executeSwap(
           routerContract,
           tokenFromAddress,
           tokenToAddress,
           tokenAmountIn
         );
       }
-
-      setMessage({ text: "Swap successful", type: "success" });
+  
+      const transactionHash = tx?.transactionHash;
+      setMessage({
+        text: `Swap successful. Click the below to see the transaction details.`,
+        type: "success",
+        transactionHash: transactionHash,
+      });
     } catch (error) {
       console.error("Error while swapping:", error);
       let errorMsg =
@@ -191,6 +220,7 @@ function WalletSwap() {
       setLoading(false);
     }
   };
+  
 
   const executeSwap = async (
     routerContract,
@@ -252,6 +282,7 @@ function WalletSwap() {
 
     const receipt = await tx.wait();
     console.log("Transaction receipt:", receipt);
+    return receipt;
   };
 
   const calculateSwapDetails = async () => {
@@ -374,6 +405,7 @@ function WalletSwap() {
         KIM_ABI,
         signer
       );
+      console.log(routerContract);
       let tokenFromAddress = tokenInfoA.contractAddress;
       let tokenToAddress = tokenInfoB.contractAddress;
       if (tokenFromAddress === ETH_ADDRESS) {
@@ -400,11 +432,7 @@ function WalletSwap() {
   };
   return (
     <div className={styles.swapContainer}>
-      <Toast
-        message={message.text}
-        type={message.type}
-        onClose={handleCloseToast}
-      />
+      <Toast message={message} type={message.type} onClose={handleCloseToast} />
       <h2 className={styles.title}>SWAP</h2>
       {isWalletConnected ? (
         <>

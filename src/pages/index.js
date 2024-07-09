@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import SignupLogin from "../../Components/SignupLogin/SignupLogin";
+import CreateWallet from "../../Components/CreateWallet/CreateWallet";
 
 export default function Home() {
   useEffect(() => {
@@ -13,7 +14,8 @@ export default function Home() {
 
   return (
     <div>
-      <SignupLogin/>
+      {/* <SignupLogin/> */}
+      <CreateWallet/>
     </div>
   );
 }

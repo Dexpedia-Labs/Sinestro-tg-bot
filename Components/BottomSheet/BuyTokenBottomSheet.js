@@ -31,7 +31,7 @@ function BuyTokenBottomSheet({
           <div className={styles.modalContent}>
             <h2 className={styles.heading}>{transactionType === "buy" ? "Buy Token" : "Sell Token"}</h2>
             <select
-              className={styles.select}
+              className={styles.input}
               value={tokenAddress}
               onChange={(e) => setTokenAddress(e.target.value)}
             >

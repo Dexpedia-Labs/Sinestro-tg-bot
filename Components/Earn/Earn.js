@@ -7,16 +7,20 @@ import { WalletContext } from "../../Context/WalletContext";
 import StackBottomSheet from "../BottomSheet/StackBottomSheet";
 import { ethers } from "ethers";
 import Toast from "../Toast/Toast";
+import { useActiveAccount } from "thirdweb/react";
 
 function Earn() {
   const [tokenData, setTokenData] = useState([]);
-  const [stakingAmount, setStakingAmount] = useState("");
-
+  const [amount, setAmount] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isStaking, setIsStaking] = useState(true);
+  const activeAccount = useActiveAccount();
+  const [signer, setSigner] = useState();
   const {
+    provider,
     walletInfo,
     showStakingModal,
     setShowStakingModal,
-    signer,
     sdk,
     getBalance,
     setToastMessage,
@@ -24,6 +28,14 @@ function Earn() {
     toastMessage,
     toastType,
   } = useContext(WalletContext);
+
+  useEffect(() => {
+    if (activeAccount) {
+      const activeSigner = provider.getSigner(activeAccount?.address);
+      setSigner(activeSigner);
+    }
+  }, [activeAccount, provider]);
+
   useEffect(() => {
     const fetchTokenAPR = async () => {
       try {
@@ -56,7 +68,7 @@ function Earn() {
     fetchTokenAPR();
   }, []);
 
-  const handleStaking = async () => {
+  const handleOperation = async () => {
     if (!signer || !sdk) {
       console.error("Signer or SDK not found.");
       setToastMessage("Signer or SDK not found.");
@@ -64,9 +76,11 @@ function Earn() {
       return;
     }
 
+    setLoading(true);
+
     try {
-      const stakingAmountInWei = ethers.utils.parseEther(
-        stakingAmount.toString()
+      const amountInWei = ethers.utils.parseEther(
+        amount.toString()
       );
 
       // Step 1: Approve spending of tokens by the staking contract
@@ -82,35 +96,48 @@ function Earn() {
       );
       const approvalTx = await tokenContract.approve(
         modeLockContractAddress,
-        stakingAmountInWei.toString()
+        amountInWei.toString()
       );
       await approvalTx.wait();
 
-      // Step 2: Lock tokens in the ModeLock contract
+      // Step 2: Perform staking or unstaking based on isStaking state
       const modeLockContract = new ethers.Contract(
         modeLockContractAddress,
-        ["function lock(uint256 amount) external"],
+        [
+          isStaking ? "function lock(uint256 amount) external" : "function cooldownAssets(uint224 amount) external",
+        ],
         signer
       );
-      const lockTx = await modeLockContract.lock(stakingAmountInWei);
-      await lockTx.wait();
 
-      console.log("Staking successful!");
+      if (isStaking) {
+        // Staking
+        const stakeTx = await modeLockContract.lock(amountInWei);
+        await stakeTx.wait();
+        console.log("Staking successful!");
+        setToastMessage({ text: "Staking successful!", type: 'success'});
+      } else {
+        // Unstaking
+        const unstakeTx = await modeLockContract.unlock();
+        await unstakeTx.wait();
+        console.log("Unstaking successful!");
+        setToastMessage({text: "Unstaking successful!", type: 'succes'});
+      }
 
       await getBalance(walletInfo?.address, sdk);
-      setToastMessage("Staking successful!");
       setToastType("success");
     } catch (error) {
-      console.error("Staking failed:", error);
-      setToastMessage("Staking failed.");
+      console.error(`${isStaking ? "Staking" : "Unstaking"} failed:`, error);
+      setToastMessage({ text: `${isStaking ? "Staking" : "Unstaking"} failed.`, type: 'error'});
       setToastType("error");
+    } finally {
+      setLoading(false); 
     }
   };
+
   return (
     <div className={styles.container}>
       <div className={styles.titleContainer}>
         <h2 className={styles.title}>EARN</h2>
-
         <p>Native Staking</p>
       </div>
       <div className={styles.stakingContainer}>
@@ -123,13 +150,13 @@ function Earn() {
         />
         <div className={styles.stakingContainerInfo}>
           <p className={styles.stakingContainerTitle}>
-            Stake you ETH with trust
+            Stake your tokens with trust
           </p>
           <div
             onClick={() => setShowStakingModal(true)}
             className={styles.stakeButton}
           >
-            <p>Stake Now </p>
+            <p>{isStaking ? "Stake Now" : "Unstake Now"}</p>
             <FaArrowRightLong />
           </div>
         </div>
@@ -160,9 +187,12 @@ function Earn() {
         <StackBottomSheet
           showStakingModal={showStakingModal}
           setShowStakingModal={setShowStakingModal}
-          setStakingAmount={setStakingAmount}
-          stakingAmount={stakingAmount}
-          handleStaking={handleStaking}
+          setAmount={setAmount}
+          amount={amount}
+          handleOperation={handleOperation}
+          loading={loading}
+          isStaking={isStaking}
+          setIsStaking={setIsStaking}
         />
       )}
       <Toast

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import styles from "./UserProfile.module.css";
-import { FaStickyNote, FaCopy, FaArrowLeft } from "react-icons/fa";
-import copy from "copy-to-clipboard";
+import { BiSolidCopy } from "react-icons/bi";
 
 function SeedPhraseInfo({
   privateKey,
@@ -24,16 +23,12 @@ function SeedPhraseInfo({
 
   return (
     <div className={styles.walletInfo}>
-      <div className={styles.backButton} onClick={onBack}>
-        <FaArrowLeft />
-      </div>
       {/* Seed Phrase Container */}
       <div className={styles.seedPhraseContainer}>
         <div className={styles.labelWithIcon}>
-          <FaStickyNote className={styles.icon} />
-          <h3>Seed Phrase</h3>
+          <p>Seed Phrase</p>
           <div className={styles.copyIcon} onClick={() => handleCopy(mnemonic)}>
-            <FaCopy />
+            <BiSolidCopy />
           </div>
         </div>
         <div className={styles.seedPhraseContent}>
@@ -54,13 +49,12 @@ function SeedPhraseInfo({
       {/* Private Key Container */}
       <div className={styles.seedPhraseContainer}>
         <div className={styles.labelWithIcon}>
-          <FaStickyNote className={styles.icon} />
-          <h3>Private Key</h3>
+          <p>Private Key</p>
           <div
             className={styles.copyIcon}
             onClick={() => handleCopy(privateKey)}
           >
-            <FaCopy />
+            <BiSolidCopy />
           </div>
         </div>
         <div className={styles.seedPhraseContent}>

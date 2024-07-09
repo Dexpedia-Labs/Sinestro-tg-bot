@@ -7,7 +7,7 @@
 }
 
 .container {
-  padding: 0 1.5rem;
+  padding: 0 1.1rem;
   font-family: "roboto", sans-serif;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   color: #fff;
@@ -161,4 +161,32 @@
   padding: 12px;
   border-radius: 10px;
   color: #2B73FF;
+}
+.token_icon {
+  position: relative;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 2rem;
+  background: #627eea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.token_marker {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background-color: #DFFE00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.marker_text {
+  font-size: 0.5rem;
+  color: #232323;
 }
