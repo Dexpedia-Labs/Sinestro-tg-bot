@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import Head from "next/head";
 import Image from "next/image";
 import { useRouter } from "next/router";
@@ -10,7 +10,7 @@ import { ConnectButton } from "thirdweb/react";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
 import { WalletContext } from "../../Context/WalletContext";
 import { THIRDWEB_CLIENT_ID, THIRDWEB_SECRET_KEY } from "../Constants";
-import BottomSheetIframe from "../BottomSheet/BottomSheetIframe"; // Assuming you have a component for bottom sheet iframe
+import BottomSheetIframe from "../BottomSheet/BottomSheetIframe";
 
 const wallets = [
   inAppWallet(),
@@ -39,25 +39,83 @@ const CreateWalletPage = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showImportWallet, setShowImportWallet] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [iframeSrc, setIframeSrc] = useState('');
+  const [iframeOpen, setIframeOpen] = useState(false);
+  const [iframeUrl, setIframeUrl] = useState("");
+  const originalWindowOpenRef = useRef(null);
+
   const router = useRouter();
   const { client, setAccount } = useContext(WalletContext);
+  // useEffect(() => {
+  //   const fetchOauthLink = async () => {
+  //     try {
+  //       const response = await fetch('https://embedded-wallet.thirdweb.com/api/trpc/authentication.getHeadlessOauthLoginLink?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22authProvider%22%3A%22Google%22%2C%22baseUrl%22%3A%22https%3A%2F%2Fembedded-wallet.thirdweb.com%22%2C%22platform%22%3A%22web%22%7D%7D%7D');
+  //       if (!response.ok) {
+  //         throw new Error('Failed to fetch OAuth link');
+  //       }
+  //       const data = await response.json();
+  //       // Assuming the response structure gives you the OAuth link
+  //       const oauthLink = data?.response?.oauthLink || '';
+  //       setOauthLink(oauthLink);
+  //     } catch (error) {
+  //       console.error('Error fetching OAuth link:', error);
+  //     }
+  //   };
 
-  useEffect(() => {
-    const walletAddress = localStorage.getItem("walletAddress");
-    if (walletAddress) {
-      setLoading(true);
-      // router.push("/dashboard");
-    }
-  }, [router]);
+  //   fetchOauthLink();
+  // }, []);
+
+  // useEffect(() => {
+  //   if (typeof window !== "undefined") {
+  //     originalWindowOpenRef.current = window.open;
+  //     const walletAddress = localStorage.getItem("walletAddress");
+  //     if (walletAddress) {
+  //       setLoading(true);
+  //       router.push("/dashboard");
+  //     }
+
+  //     window.open = (url, name, specs) => {
+  //       console.log("window.open called with URL:", url);
+  //       setIframeUrl(url);
+  //       setIframeOpen(true);
+
+  //       const newWindow = {
+  //         closed: false,
+  //         location: {
+  //           href: url,
+  //         },
+  //         close: () => {
+  //           setIframeOpen(false);
+  //         },
+  //         focus: () => {},
+  //         postMessage: (message, targetOrigin) => {},
+  //         document: {
+  //           title: "",
+  //           body: {
+  //             innerHTML: "<h1>Signing In...</h1>",
+  //             style: {
+  //               background: "",
+  //               color: "",
+  //             },
+  //           },
+  //         },
+  //       };
+
+  //       return newWindow;
+  //     };
+
+  //     return () => {
+  //       if (originalWindowOpenRef.current) {
+  //         window.open = originalWindowOpenRef.current;
+  //       }
+  //     };
+  //   }
+  // }, [router]);
 
   const handleBackToCreateWallet = () => {
     setShowLogin(!showLogin);
   };
 
   const handleOnConnect = async (account) => {
-    console.log(account);
     setAccount(account.getAccount());
     const options = {
       client: client,
@@ -65,42 +123,38 @@ const CreateWalletPage = () => {
     const accountInfo = await account?.autoConnect(options);
     localStorage.setItem("walletAddress", accountInfo?.address);
     console.log(accountInfo);
-    console.log(account);
     router.push("/dashboard");
   };
-  useEffect(() => {
-    const originalWindowOpen = window.open;
-    window.open = function (url, name, specs) {
-      console.log("Opening URL:", url); // Log the URL being opened
-      setIframeSrc(url);
-      setSheetOpen(true);
-      return {
-        focus: () => {},
-        close: () => setSheetOpen(false),
-      };
-    };
-
-    return () => {
-      window.open = originalWindowOpen;
-    };
-  }, []);
 
   return (
     <>
+      {/* <BottomSheetIframe
+        open={iframeOpen}
+        url={iframeUrl}
+        onClose={() => setIframeOpen(false)}
+      /> */}
       {!walletCreated ? (
         <>
           <div>
             <Head>
               <title>Create Wallet</title>
               <meta name="description" content="Create a new Ethereum wallet" />
-              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <meta
+                name="viewport"
+                content="width=device-width, initial-scale=1"
+              />
               <link rel="icon" href="/favicon.ico" />
             </Head>
             <main className={styles.main}>
               {showLogin ? (
-                <WalletLogin handleBackToCreateWallet={handleBackToCreateWallet} />
+                <WalletLogin
+                  handleBackToCreateWallet={handleBackToCreateWallet}
+                />
               ) : showImportWallet ? (
-                <ImportWallet showImportWallet={showImportWallet} setShowImportWallet={setShowImportWallet} />
+                <ImportWallet
+                  showImportWallet={showImportWallet}
+                  setShowImportWallet={setShowImportWallet}
+                />
               ) : (
                 <div className={styles.container}>
                   <div className={styles.logoContainer}>
@@ -112,7 +166,9 @@ const CreateWalletPage = () => {
                       className={styles.image}
                     />
                     <p className={styles.description}>
-                      The next generation of Telegram wallets: Secure, Fast, and seamlessly integrated with the Mode Network for an unparalleled user experience
+                      The next generation of Telegram wallets: Secure, Fast, and
+                      seamlessly integrated with the Mode Network for an
+                      unparalleled user experience
                     </p>
                     <ConnectButton
                       client={client}
@@ -134,11 +190,27 @@ const CreateWalletPage = () => {
                           width: "87vw",
                         },
                       }}
+                    
                       chains={chains}
                       wallets={wallets}
                       walletConnect={THIRDWEB_CLIENT_ID}
                       onConnect={handleOnConnect}
                       showThirdwebBranding={false}
+                      auth={{
+                        isLoggedIn: async (address, uri) => {
+                          console.log("checking if logged in!", { uri });
+                          return await isLoggedIn();
+                        },
+                        doLogin: async (params) => {
+                          console.log("logging in!");
+                          await login(params);
+                        },
+
+                        doLogout: async () => {
+                          console.log("logging out!");
+                          await logout();
+                        },
+                      }}
                     />
                   </div>
                   <div className={styles.imageContainer}>
@@ -166,7 +238,6 @@ const CreateWalletPage = () => {
       ) : (
         <WalletInfo />
       )}
-      <BottomSheetIframe open={sheetOpen} url={iframeSrc} onClose={() => setSheetOpen(false)} />
     </>
   );
 };

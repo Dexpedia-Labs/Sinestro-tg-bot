@@ -8,7 +8,7 @@ import { FaGear } from "react-icons/fa6";
 import { IoSwapVertical } from "react-icons/io5";
 import TokenModal from "./TokenModal";
 import SwapBox from "./SwapBox";
-import IUniswapV2Pair from "@uniswap/v2-core/build/IUniswapV2Pair.json";
+import IUniswapV2Pair from '@uniswap/v2-core/build/IUniswapV2Pair.json'
 import { useActiveAccount, useActiveWalletChain } from "thirdweb/react";
 
 const ETH_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
@@ -71,7 +71,7 @@ function WalletSwap() {
   }, [tokenInfoA, tokenInfoB, amountA]);
 
   const handleCloseToast = () => {
-    setMessage({ text: null, type: null });
+      setMessage({ text: null, type: null });
   };
 
   const handleSelectTokenA = (token) => {
@@ -99,15 +99,25 @@ function WalletSwap() {
     setAmountB(tempAmount);
   };
 
-  const checkReserves = async (
-    routerContract,
-    tokenFromAddress,
-    tokenToAddress
-  ) => {
-    const pair = await routerContract.getPair(tokenFromAddress, tokenToAddress);
-    const pairContract = new ethers.Contract(pair, IUniswapV2Pair.abi, signer);
-    const reserves = await pairContract.getReserves();
-    return reserves;
+  const checkReserves = async (routerContract, tokenFromAddress, tokenToAddress) => {
+    try {
+      console.log(routerContract);  
+      const pair = await routerContract.getPair(tokenFromAddress, tokenToAddress);
+      console.log(pair);
+      if (pair === ethers.constants.AddressZero) {
+        console.error("Pair contract address is zero");
+        throw new Error("Pair contract address is zero");
+      }
+      const pairContract = new ethers.Contract(pair, IUniswapV2Pair, signer);
+      console.log(pairContract);                          
+      const reserves = await pairContract.getReserves();  
+      console.log(reserves);                              
+      console.log(`Reserves for pair ${tokenFromAddress} - ${tokenToAddress}:`, reserves);
+      return reserves;
+    } catch (error) {
+      console.error(`Error fetching reserves for pair ${tokenFromAddress} - ${tokenToAddress}:`, error);
+      throw error;
+    }
   };
 
   const approveToken = async (tokenContract, spender, amount) => {
@@ -258,7 +268,7 @@ function WalletSwap() {
           [tokenFromAddress, WETH_ADDRESS],
           signer.address,
           ethers.constants.AddressZero,
-          deadline,
+            deadline,
           {
             gasLimit: ethers.utils.hexlify(800000),
             gasPrice: gasPrice.toString(),
@@ -299,7 +309,6 @@ function WalletSwap() {
       );
       let tokenFromAddress = tokenInfoA.contractAddress;
       let tokenToAddress = tokenInfoB.contractAddress;
-
       // Check if tokenFromAddress or tokenToAddress is ETH and replace with WETH address
       if (tokenFromAddress === ETH_ADDRESS) {
         tokenFromAddress = WETH_ADDRESS;
@@ -327,7 +336,7 @@ function WalletSwap() {
         ]);
         tokenAmountOutMin = amountsOut[1];
       } else {
-        // Swap through WETH
+          // Swap through WETH
         const amountsOutToWETH = await routerContract.getAmountsOut(
           tokenAmountIn,
           [tokenFromAddress, WETH_ADDRESS]
@@ -365,8 +374,6 @@ function WalletSwap() {
   const handleAmountAChange = (e) => {
     const value = e.target.value;
     setAmountA(value);
-
-    // Clear amountB when amountA is cleared
     if (!value) {
       setAmountB("");
       setMinimumReceived(null);
@@ -398,14 +405,9 @@ function WalletSwap() {
   const isTokenPairAvailable = async () => {
     try {
       if (!tokenInfoA || !tokenInfoB) return false;
-
+  
       const routerAddress = "0x5D61c537393cf21893BE619E36fC94cd73C77DD3";
-      const routerContract = new ethers.Contract(
-        routerAddress,
-        KIM_ABI,
-        signer
-      );
-      console.log(routerContract);
+      const routerContract = new ethers.Contract(routerAddress, KIM_ABI, signer);
       let tokenFromAddress = tokenInfoA.contractAddress;
       let tokenToAddress = tokenInfoB.contractAddress;
       if (tokenFromAddress === ETH_ADDRESS) {
@@ -414,12 +416,13 @@ function WalletSwap() {
       if (tokenToAddress === ETH_ADDRESS) {
         tokenToAddress = WETH_ADDRESS;
       }
-
-      const pair = await routerContract.getPair(
-        tokenFromAddress,
-        tokenToAddress
-      );
-      return pair !== ethers.constants.AddressZero;
+  
+      const pair = await routerContract.getPair(tokenFromAddress, tokenToAddress);
+      console.log(pair);
+      const pairAvailable = pair !== ethers.constants.AddressZero;
+  
+      console.log(`Pair available for ${tokenFromAddress} - ${tokenToAddress}: ${pairAvailable}`);
+      return pairAvailable;
     } catch (error) {
       console.error("Error checking token pair availability:", error);
       return false;

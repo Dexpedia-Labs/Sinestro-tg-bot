@@ -3,6 +3,8 @@ import { Sheet } from "react-modal-sheet";
 import styles from "./BottomSheet.module.css";
 import { TOKEN_OPTIONS } from "../Constants";
 import { IoCloseCircleOutline } from "react-icons/io5";
+import useKeyboardAdjust from "../../Hooks/useKeyboardAdjust";
+
 function BuyTokenBottomSheet({
   showModal,
   setShowModal,
@@ -14,6 +16,8 @@ function BuyTokenBottomSheet({
   amount,
   transactionType
 }) {
+  const keyboardHeight = useKeyboardAdjust();
+
   return (
     <div>
       <Sheet
@@ -25,6 +29,8 @@ function BuyTokenBottomSheet({
           style={{
             backgroundColor: "#232323",
             color: "#fff",
+            transform: `translateY(-${keyboardHeight}px)`,
+            transition: "transform 0.3s ease-in-out", 
           }}
         >
           <Sheet.Header className={styles.sheet_header} />

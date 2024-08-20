@@ -76,7 +76,8 @@ const WalletDashboard = () => {
     toAmount: amount || 10,
     toTokenAddress: tokenAddress || NATIVE_TOKEN_ADDRESS,
     toAddress: activeAccount?.address,
-    isTestMode: false,
+    isTestMode: true,
+
   });
 
   useEffect(() => {
@@ -111,7 +112,7 @@ const WalletDashboard = () => {
       activeAccount?.address &&
       tokenAddress &&
       amount &&
-      amount >= 10
+      amount >=  10
     ) {
       setLoading(true);
       try {
@@ -126,7 +127,7 @@ const WalletDashboard = () => {
           "Purchase failed! Please check the console for more details."
         );
         setToastType("error");
-      } finally {
+      } finally {   
         setLoading(false);
       }
     } else {

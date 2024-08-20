@@ -5,6 +5,7 @@ import CreateWallet from "../../Components/CreateWallet/CreateWallet";
 export default function Home() {
   useEffect(() => {
     const tele = window.Telegram.WebApp;
+    console.log(tele);
     if (tele) {
       tele.ready();
       tele.expand();

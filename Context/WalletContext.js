@@ -38,14 +38,6 @@ export const WalletProvider = ({ children }) => {
     name: "Mode Network",
     testnet: true,
   };
-  const { connect } = useConnect({
-    client,
-    accountAbstraction: {
-      chain: chains,
-      sponsorGas: true,
-    },
-  });
-
   useEffect(() => {
     const loadWallet = async () => {
       try {

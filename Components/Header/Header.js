@@ -125,6 +125,7 @@ const Header = ({
                 }
               }
             }
+            sho wAllWallets = {true}
           />
           {/* <FaGear className={styles.icon} onClick={handleShowUserProfile} /> */}
         </div>
